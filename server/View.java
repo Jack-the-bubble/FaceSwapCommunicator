@@ -4,26 +4,21 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.HashSet;
-
 import javax.swing.JFrame;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 
 public class View {
-	    JFrame frame = new JFrame("SerwerView");
-		JTextField textField= new JTextField(40);
-		JTextArea textArea= new JTextArea(15, 40);
-		String commands;
-		
-		private static String talk;
-		//
+	    private JFrame frame = new JFrame("SerwerView");
+		private JTextField textField= new JTextField(40);
+		private JTextArea textArea= new JTextArea(15, 40);
+		private String commands;
 		private static ArrayList<String> status= new ArrayList<String>();
 		private static HashSet<String> names = new HashSet<String>();
 		
 		public View(String talk, ArrayList<String> status, HashSet<String> names) 
 		{
-			this.talk=talk;
 			this.status=status;
 			this.names=names;
 			textArea.setEditable(false);

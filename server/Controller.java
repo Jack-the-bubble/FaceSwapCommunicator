@@ -1,13 +1,5 @@
 package server;
 
-
-/*
-import javax.swing.JFrame;
-import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
-import javax.swing.JTextField;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;*/
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -16,20 +8,39 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.HashSet;
 
-import javax.swing.SwingUtilities;
-
 import java.util.ArrayList;
 import java.util.Date;
 
 public class Controller
 {
-	
+	/**
+     * The port that the server listens on.
+     */
+    private static final int PORT = 9091;
+    
+    /**
+     * The set of all names of clients in the chat room.  Maintained
+     * so that we can check that new clients are not registering name
+     * already in use.
+     */
+    private static HashSet<String> names = new HashSet<String>();
+
+    /**
+     * The set of all the print writers for all the clients.  This
+     * set is kept so we can easily broadcast messages.
+     */
+    private static HashSet<PrintWriter> writers = new HashSet<PrintWriter>();
+    private static String talk="";
+    private static String nameString;
+    private static ArrayList<String> status= new ArrayList<String>();  
+    
+    /**
+     * The appplication constructor,creates view, listens on a port and
+     *  spawns handler threads.
+     */
 	public Controller() throws IOException{
-/*View view=*/ new View(talk, status, names);
-    	
+		new View(talk, status, names);
         System.out.println("The chat server is running.");
-        
-        //new FaceSwapServerView2();
         ServerSocket listener = new ServerSocket(PORT);
         try 
         {
@@ -45,43 +56,8 @@ public class Controller
             listener.close();
         }
 	}
+	 
 	/**
-     * The port that the server listens on.
-     */
-    private static final int PORT = 9091;
-
-    /**
-     * The set of all names of clients in the chat room.  Maintained
-     * so that we can check that new clients are not registering name
-     * already in use.
-     */
-    private static HashSet<String> names = new HashSet<String>();
-
-    /**
-     * The set of all the print writers for all the clients.  This
-     * set is kept so we can easily broadcast messages.
-     */
-    private static HashSet<PrintWriter> writers = new HashSet<PrintWriter>();
-    private static String talk="";
-    //private static ArrayList<String> Talk= new ArrayList<String>();
-    private static String nameString;
-    private static ArrayList<String> status= new ArrayList<String>();  
-    /**
-     * The appplication main method, which just listens on a port and
-     * spawns handler threads.
-     */
-    
-    //
-    //
-    //
-    //tu by³ main
-    //
-    //
-    //
-    //
-    
-
-    /**
      * A handler thread class.  Handlers are spawned from the listening
      * loop and are responsible for a dealing with a single client
      * and broadcasting its messages.
@@ -189,7 +165,7 @@ public class Controller
             } 
             catch (IOException e) 
             {
-                //System.out.println(e);
+                System.out.println(e);
             } 
             finally 
             {
