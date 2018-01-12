@@ -11,32 +11,51 @@ import java.util.HashSet;
 import java.util.ArrayList;
 import java.util.Date;
 
+
+/**
+ * @author Boba
+ *wielow¹tkowy serwer komunikatora wszyscy-do-wszystkich, 
+ *tworz¹cy po jednym w¹tku na jedno po³¹czenie z klientem, 
+ *odbiera od niego komunikat i wysy³a do wszystkich u¿ytkowników chatu
+ */
 public class Controller
 {
 	/**
-     * The port that the server listens on.
+     * port, na którym nas³uchuje serwer
      */
     private static final int PORT = 9091;
     
     /**
-     * The set of all names of clients in the chat room.  Maintained
-     * so that we can check that new clients are not registering name
-     * already in use.
+     * Set, który przechowuje nazwy u¿tkowników czatu, wykorzystywany 
+     * do sprawdzenia, czy dana nazwa ju¿ zosta³a uzyta 
+     * oraz wypisania wszystkich rozmówców
+     *
      */
     private static HashSet<String> names = new HashSet<String>();
 
     /**
-     * The set of all the print writers for all the clients.  This
-     * set is kept so we can easily broadcast messages.
+     * Set wszystkich obiektów PrintWriter, do wysy³ania wiadomoœci 
+     * do wszystkich u¿ytkowników chatu
      */
     private static HashSet<PrintWriter> writers = new HashSet<PrintWriter>();
+    /**
+     * historia chatu
+     */
     private static String talk="";
+    /**
+     * wszystkie nazwy u¿ytkowników do wys³ania klientom
+     */
     private static String nameString;
+    /**
+     * lista wszystkich komunikatów w serwerze 
+     * (dodanie/usuniêcie u¿tykownika z dat¹ i godzin¹)
+     */
     private static ArrayList<String> status= new ArrayList<String>();  
     
     /**
-     * The appplication constructor,creates view, listens on a port and
-     *  spawns handler threads.
+     * Konstruktor klasy Controller, tworzy instancjê widoku, s³ucha na wybranym porcie
+     * oczekuj¹c na po³¹czenie oraz tworzy now¹ instancjê klasy wewnêtrznej 
+     * odpowiedzialnej zakomunikacjê
      */
 	public Controller() throws IOException{
 		new View(talk, status, names);
@@ -58,20 +77,33 @@ public class Controller
 	}
 	 
 	/**
-     * A handler thread class.  Handlers are spawned from the listening
-     * loop and are responsible for a dealing with a single client
-     * and broadcasting its messages.
+	 * klasa wewnêtrzna, odpowiedzialna za wielow¹tkowoœæ. Ka¿da jej instancja 
+	 * jest odpowiedzialna za odbieranie wiadomoœci od jednego klienta i wysy³anie 
+	 * do pozosta³ych.
      */
     private static class Handler extends Thread 
     {
+        /**
+         * nazwa u¿ytkownika
+         */
         private String name;
+        /**
+         * socket do nawi¿zania po³¹czenia z klientem
+         */
         private Socket socket;
+        /**
+         * obiekt do odbierania wiadomoœci od klienta
+         */
         private BufferedReader in;
+        /**
+         * obiekt do wysy³ania wiadomoœci
+         */
         private PrintWriter out;
         
         /**
-         * Constructs a handler thread, squirreling away the socket.
-         * All the interesting work is done in the run method.
+         * Kontruktor klasy Handler, przypisuj¹cy stworzony socket 
+         * do pola klasy wewnêtrznej
+         * @param socket do po³¹czenia z klientem
          */
         public Handler(Socket socket) 
         {	
@@ -81,25 +113,23 @@ public class Controller
     
 
         /**
-         * Services this thread's client by repeatedly requesting a
-         * screen name until a unique one has been submitted, then
-         * acknowledges the name and registers the output stream for
-         * the client in a global set, then repeatedly gets inputs and
-         * broadcasts them.
+         * g³ówna czêœæ klasy, tworzy elementy do komunikacji tekstowe z klientem,
+         * czeka na podanie unikatowej nazwy u¿ytkownika, wpisuje wiadonmoœci, 
+         * które zosta³y nadane wczeœniej, zarz¹dza list¹ klientów po stronie serwera
+         * (komunikaty 'added'), wysy³a wiadomoœci do wszystkich u¿ytkowników,
+         * od³¹cza klientów, gdy chc¹ siê wylogowaæ
          */
         public void run() 
         {
             try 
             {
-                // Create character streams for the socket.
+            	//tworzenie obiektów strumienia do obs³ugi komunikacji z klientem
                 in = new BufferedReader(new InputStreamReader(
                     socket.getInputStream()));
                 out = new PrintWriter(socket.getOutputStream(), true);
-
-                // Request a name from this client.  Keep requesting until
-                // a name is submitted that is not already used.  Note that
-                // checking for the existence of a name and adding the name
-                // must be done while locking the set of names.
+                
+                //pyta o podanie unikatowego imienia. Jeœli wpisana nazwa ju¿
+                //znajduje siê w hashSecie, nie mo¿na rozpocz¹æ chatu
                 while (true) 
                 {
                     out.println("SUBMITNAME");
@@ -118,20 +148,19 @@ public class Controller
                         }
                     }
                 }
-
-                // Now that a successful name has been chosen, add the
-                // socket's print writer to the set of all writers so
-                // this client can receive broadcast messages.
+                //dodanie strumienia wyjœcia do setu pozosta³ych, aby umo¿liwiæ
+                //wysy³anie wiadomoœci do wszystkich u¿ytkowników 
                 out.println("NAMEACCEPTED");
                 writers.add(out);
-                System.out.println("wpisuje poprzednie wiadomosci");
+                //wys³anie poprzednich wiadomoœci czatu 
                 out.println(talk);
-                //wpisywanie listy klientów
+                //wpisywanie listy klientów i tworzenie komunikatu serwera
                 writeNames();
                 status.add(new Date()+": added >>"+name+"<<");
-
-                // Accept messages from this client and broadcast them.
-                // Ignore other clients that cannot be broadcasted to.
+                
+                //zbieranie wiadomoœci od u¿ytkownika, kontrola d³ugoœci
+                //historii czatu, obs³uga ¿¹dania wylogowania oraz wys³ania wiadomoœci
+                //do wszystkich
                 while (true) 
                 {
                     String input = in.readLine();
@@ -144,10 +173,6 @@ public class Controller
                     {
                     	talk=talk.substring(1000);
                     }
-                    /*if (input == null) 
-                    {
-                        return;
-                    }*/
                     else if (input.startsWith("#LOGOUT")) 
                     {
                     	System.out.println("zamykam to okno");
@@ -169,8 +194,7 @@ public class Controller
             } 
             finally 
             {
-                // This client is going down!  Remove its name and its print
-                // writer from the sets, and close its socket.
+            	//usuniêcie u¿ytkownika w razie wypadku
                 if (name != null) 
                 {
                     names.remove(name);
@@ -192,6 +216,12 @@ public class Controller
         
         
         
+        /**
+         * funkcja do usuniêcia u¿ytkownika, usuwa z listy imion i instancji PrintWriter,
+         * dodaje komunikat po stronie serwera (komunikaty 'deleted') i zamyka socket
+         * @param writer element hashSetu PrintWriter
+         * @param name nazwa u¿ytkownika w hashSecie names, do usuniêcia
+         */
         public void kickPlayer(PrintWriter writer, String name) 
         {
 
@@ -208,6 +238,12 @@ public class Controller
         }
         
         
+        /**
+         * metoda do wpisywania ka¿demu u¿ytkownikowi zaktualizowanej listy aktywnych 
+         * klientów czatu
+         * wpisuje do zmiennej string wszystkie aktualne nicki, 
+         * nastêpnnie wysy³a je wszystkim klientom
+         */
         public void writeNames()
         {
             nameString="";
